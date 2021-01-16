@@ -12,11 +12,10 @@ An example of this is weather entity, for this I have therefore added a separate
 
 You can also adjust the pop-up that opens when you hold down a tile.
 You can have the pop-up open another lovelace card so that you can show other info in the popup, you can also just use the standard.
-For lights I have developed a separate card that also has the style of homekit, which you can use well in combination with this card. You can find this card here: https://github.com/DBuit/hass-custom-light-popup-card
+For lights I have developed a separate card that also has the style of homekit, which you can use well in combination with this card. 
 
 Do you have ideas for a custom pop-up create an issue then I can see if I can help with this :)
 
-<a href="https://www.buymeacoffee.com/ZrUK14i" target="_blank"><img height="41px" width="167px" src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee"></a>
 
 
 ## Configuration
