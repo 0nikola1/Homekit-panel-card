@@ -4,11 +4,13 @@ import {
     domainIcon,
     forwardHaptic,
     navigate,
-    toggleEntity
+    toggleEntity,
+
 } from 'custom-card-helpers';
 import tinycolor, {TinyColor} from '@ctrl/tinycolor';
 import { css, html, LitElement } from "card-tools/src/lit-element";
 import { moreInfo } from "card-tools/src/more-info";
+import { fireEvent } from "card-tools/src/event";
 import { provideHass } from "card-tools/src/hass";
 import { parseTemplate } from "card-tools/src/templates.js";
 import { createCard } from "card-tools/src/lovelace-element.js";
@@ -31,6 +33,7 @@ class HomeKitCard extends LitElement {
     rulesColor: any;
     useTemperature = false;
     useBrightness = false;
+    useRGB = false;
     CUSTOM_TYPE_PREFIX = "custom:";
     masonry = false;
 
@@ -51,6 +54,7 @@ class HomeKitCard extends LitElement {
         this.config = config;
         this.useTemperature = "useTemperature" in this.config ? this.config.useTemperature : false;
         this.useBrightness = "useBrightness" in this.config ? this.config.useBrightness : true;
+        this.useRGB = "useRGB" in this.config ? this.config.useRGB : true;
         this.rowTitleColor = this.config.titleColor ? this.config.titleColor : false;
         this.horizontalScroll = "horizontalScroll" in this.config ? this.config.fullscreen : false;
         this.enableColumns = "enableColumns" in this.config ? this.config.enableColumns : false;
@@ -368,7 +372,7 @@ class HomeKitCard extends LitElement {
                     if (ent.color) {
                         color = ent.color
                     } else {
-                        color = this._getColorForLightEntity(stateObj, this.useTemperature, this.useBrightness);
+                        color = this._getColorForLightEntity(stateObj, this.useTemperature, this.useBrightness, this.useRGB);
                     }
                     const type = ent.entity.split('.')[0];
                     if (type == "light") {
@@ -731,6 +735,12 @@ class HomeKitCard extends LitElement {
                 const [domain, service] = tapAction.service.split(".", 2);
                 this.hass.callService(domain, service, tapAction.service_data);
                 if (tapAction.haptic) forwardHaptic(tapAction.haptic);
+                break;
+            }
+            case "fire-dom-event": {
+                fireEvent("ll-custom", tapAction);
+                if (tapAction.haptic) forwardHaptic(tapAction.haptic);
+                break;
             }
         }
     }
@@ -754,14 +764,16 @@ class HomeKitCard extends LitElement {
                 '$': ".mdc-dialog .mdc-dialog__container { width: 100%; } .mdc-dialog .mdc-dialog__container .mdc-dialog__surface { width:100%; box-shadow:none; }",
                 '.': ":host { --mdc-theme-surface: rgba(0,0,0,0); --secondary-background-color: rgba(0,0,0,0); --ha-card-background: rgba(0,0,0,0); --mdc-dialog-scrim-color: rgba(0,0,0,0.8); --mdc-dialog-min-height: 100%; --mdc-dialog-min-width: 100%; --mdc-dialog-max-width: 100%; } mwc-icon-button { color: #FFF; }"
             }
-            const service_data = {
-                title: " ",
-                style: popUpStyle,
-                card: popUpCard,
-                deviceID: ['this']
+            const action = {
+                browser_mod: {
+                    command: "popup",
+                    title: " ",
+                    style: popUpStyle,
+                    card: popUpCard,
+                    deviceID: ['this']
+                }
             }
-            // eslint-disable-next-line no-unused-vars
-            const result = await this.hass.callService("browser_mod", "popup", service_data);
+            fireEvent("ll-custom", action);
         } else {
             moreInfo(entity_id)
         }
@@ -803,11 +815,13 @@ class HomeKitCard extends LitElement {
     }
 
 
-    _getColorForLightEntity(stateObj, useTemperature, useBrightness) {
-        let color = this.config.default_color ? this.config.default_color : undefined;
+    _getColorForLightEntity(stateObj, useTemperature, useBrightness, useRGB) {
+        let color = this.config.default_color ? this.config.default_color : this._getDefaultColorForState();
         if (stateObj) {
             if (stateObj.attributes.rgb_color) {
-                color = `rgb(${stateObj.attributes.rgb_color.join(',')})`;
+                if(useRGB) {
+                    color = `rgb(${stateObj.attributes.rgb_color.join(',')})`;
+                }
                 if (useBrightness && stateObj.attributes.brightness) {
                     color = this._applyBrightnessToColor(color, (stateObj.attributes.brightness + 245) / 5);
                 }
@@ -1114,7 +1128,86 @@ class HomeKitCard extends LitElement {
             top: calc(50% - (var(--slider-height, 120px) / 2));
             right: calc(50% - (var(--slider-width, 120px) / 2));
         }
+
+        .button.size-2 input[type="range"] {
+            width: calc((var(--slider-width, 120px) * 2) + (10px * 1) - 1px);
+            right: calc(50% - (((var(--slider-width, 120px) * 2) + (1 * 10px) - 1px) / 2));
+        }
         
+        .button.size-3 input[type="range"] {
+            width: calc((var(--slider-width, 120px) * 3) + (10px * 2) - 1px);
+            right: calc(50% - (((var(--slider-width, 120px) * 3) + (2 * 10px) - 1px) / 2));
+        }
+        
+        .button.size-4 input[type="range"] {
+            width: calc((var(--slider-width, 120px) * 4) + (10px * 3) - 1px);
+            right: calc(50% - (((var(--slider-width, 120px) * 4) + (3 * 10px) - 1px) / 2));
+        }
+        
+        .button.size-5 input[type="range"] {
+            width: calc((var(--slider-width, 120px) * 5) + (10px * 4) - 1px);
+            right: calc(50% - (((var(--slider-width, 120px) * 5) + (4 * 10px) - 1px) / 2));
+        }
+        
+        .button.size-6 input[type="range"] {
+            width: calc(
+                (var(--slider-width, 120px) * 6) + (10px * 5) - 1px
+            );
+            right: calc(50% - (((var(--slider-width, 120px) * 6) + (5 * 10px) - 1px) / 2));
+        }
+        .button.size-6 input[type="range"]::-webkit-slider-thumb {
+            box-shadow: -400px 0 0 410px var(--tile-on-background),
+                inset 0 0 0 80px var(--tile-background);
+        }
+
+        .button.height-2 input[type="range"] {
+            height: calc(
+                (var(--slider-height, 120px) * 2) + (10px * 1) - 1px
+            );
+            top: calc(50% - (((var(--slider-height, 120px) * 2) / 2) + (5px * 1)));
+        }
+        
+        .button.height-3 input[type="range"] {
+            height: calc(
+                (var(--slider-height, 120px) * 3) + (10px * 2) - 1px
+            );
+            top: calc(50% - (((var(--slider-height, 120px) * 3) / 2) + (5px * 2) - 0.5px));
+        }
+        
+        .button.height-4 input[type="range"] {
+            height: calc(
+                (var(--slider-height, 120px) * 4) + (10px * 3) - 1px
+            );
+            top: calc(50% - (((var(--slider-height, 120px) * 4) / 2) + (5px * 3)));
+        }
+        
+        .button.height-5 input[type="range"] {
+            height: calc(
+                (var(--slider-height, 120px) * 5) + (10px * 4) - 1px
+            );
+            top: calc(50% - (((var(--slider-height, 120px) * 5) / 2) + (5px * 4) - 0.5px));
+        }
+        
+        .button.height-6 input[type="range"] {
+            height: calc(
+                (var(--slider-height, 120px) * 6) + (10px * 5) - 1px
+            );
+            top: calc(50% - (((var(--slider-height, 120px) * 6) / 2) + (5px * 5)));
+        }
+
+        .button.height-half input[type="range"] {
+            height: calc((var(--slider-height, 120px) * 0.5) - 3px);
+            top: calc(50% - (((var(--slider-height, 120px) * 0.5) / 2) - 1px));
+        }
+        
+        .button.height-half input[type="range"]::-webkit-slider-runnable-track {
+            height: calc((var(--slider-height, 120px) * 0.5) - 3px);
+        }
+        
+        .button.height-half input[type="range"]::-webkit-slider-thumb {
+            top: calc((((var(--slider-height, 120px) * 0.5) - 80px) / 2));
+        }
+
         .button input[type="range"]::-webkit-slider-runnable-track {
             height: var(--slider-height, 120px);
             -webkit-appearance: none;
@@ -1140,37 +1233,6 @@ class HomeKitCard extends LitElement {
             transition: box-shadow 0.2s ease-in-out;
             position: relative;
             top: calc((var(--slider-height, 120px) - 80px) / 2);
-        }
-        
-        .button.size-2 input[type="range"] {
-            width: calc(var(--slider-width, 120px) * 2.26);
-            right: calc(50% - ((var(--slider-width, 120px) * 2.26) / 2));
-        }
-        
-        .button.height-2 input[type="range"] {
-            height: calc(var(--slider-height, 120px) * 2.26);
-            top: calc(50% - ((var(--slider-height, 120px) * 2.26) / 2));
-        }
-        
-        .button.height-2 input[type="range"]::-webkit-slider-runnable-track {
-            height: calc(var(--slider-height, 120px) * 2.26);
-        }
-        
-        .button.height-2 input[type="range"]::-webkit-slider-thumb {
-            top: calc(((var(--slider-height, 120px) * 2.26) - 80px) / 2);
-        }
-        
-        .button.height-half input[type="range"] {
-            height: calc(var(--slider-height, 120px) * 0.58333333333);
-            top: calc(50% - ((var(--slider-height, 120px) * 0.58333333333) / 2));
-        }
-        
-        .button.height-half input[type="range"]::-webkit-slider-runnable-track {
-            height: calc(var(--slider-height, 120px) * 0.58333333333);
-        }
-        
-        .button.height-half input[type="range"]::-webkit-slider-thumb {
-            top: calc(((var(--slider-height, 120px) * 0.58333333333) - 80px) / 2);
         }
         
         :host:last-child .button {
