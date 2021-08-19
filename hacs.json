@@ -1,5 +1,4 @@
 {
     "name": "Homekit panel card",
-    "render_readme": true,
-    "filename": "homekit-panel-card.js"
+    "render_readme": true
 }
